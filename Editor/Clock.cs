@@ -1,37 +1,33 @@
-using System.Collections;
-using System.Collections.Generic;
+using System;
 using UnityEditor;
 using UnityEngine;
-
 using UnityToolbarExtender;
-
-using System.Linq;
 
 namespace CountdownTimer
 {
     [InitializeOnLoad]
-    public class Clock
+    public static class Clock
     {
         internal static DeadlineSO GetInstance()
         {
-            string[] guids = UnityEditor.AssetDatabase.FindAssets("t:DeadlineSO");
+            string[] guids = AssetDatabase.FindAssets("t:DeadlineSO");
             if (guids.Length == 0)
             {
                 return null;
             }
             else
             {
-                string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
-                return UnityEditor.AssetDatabase.LoadAssetAtPath<DeadlineSO>(path);
+                string path = AssetDatabase.GUIDToAssetPath(guids[0]);
+                return AssetDatabase.LoadAssetAtPath<DeadlineSO>(path);
             }
         }
 
-        static DeadlineSO deadline = null;
+        private static DeadlineSO deadline;
 
         static Clock()
         {
-            ToolbarExtender.RightToolbarGUI.Add(OnToolbarGUI);
             Rescan();
+            ToolbarExtender.RightToolbarGUI.Add(OnToolbarGUI);
         }
 
         private static void Rescan()
@@ -40,22 +36,23 @@ namespace CountdownTimer
 
             if (deadline == null)
             {
-                Debug.LogWarning("No deadline asset found! To create one, open \"Create > Countdown Deadline\"");
+                Debug.LogWarning("No deadline asset found! To create one, \"Assets > Create > Countdown Deadline\"");
             }
         }
 
-        static void OnToolbarGUI()
+        private static void OnToolbarGUI()
         {
             if (deadline != null)
             {
-                System.DateTime dt = deadline.deadline.GetDateTime();
-                var diff = dt.Subtract(System.DateTime.UtcNow);
+                DateTimeOffset dt = deadline.GetDateTimeOffset();
+                var diff = dt - DateTimeOffset.UtcNow;
 
-                GUIStyle deathClockStyle = new GUIStyle(EditorStyles.label);
+                GUIStyle deathClockStyle = new(EditorStyles.label);
                 deathClockStyle.normal.textColor = Color.gray;
                 deathClockStyle.fontSize = 16;
 
-                GUILayout.Label($"{diff.TotalHours:00}:{diff.Minutes:00}:{diff.Seconds:00}", deathClockStyle);
+                // Fixed the bug: if you forget to cast down via (int), the double may round up giving off-by-1 in the hours
+                GUILayout.Label($"{(int)diff.TotalHours:00}:{diff.Minutes:00}:{diff.Seconds:00}", deathClockStyle);
             }
             else
             {
